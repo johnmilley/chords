@@ -6,3 +6,5 @@ dev-dist
 .wrangler
 
 tsconfig.tsbuildinfo
+chords-backup.json
+scripts/*.bundle.mjs

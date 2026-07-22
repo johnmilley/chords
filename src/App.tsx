@@ -11,8 +11,9 @@ import { SongEdit } from './components/SongEdit';
 import { SettingsView } from './components/SettingsView';
 import { SEED_SONGS } from './seed';
 
-// Bump when adding new seed songs so existing installs merge them in once.
-const SEED_VERSION = 1;
+// Bump when adding/updating seed songs so existing installs pick up changes once.
+// v2: chords baked into the favorites (were link-only stubs in v1).
+const SEED_VERSION = 2;
 
 type Route =
   | { name: 'library' }
@@ -67,10 +68,27 @@ export function App() {
       const [s, cfg, seedV] = await Promise.all([loadSongs(), loadSettings(), loadSeedVersion()]);
       let songs = s;
       if (seedV < SEED_VERSION) {
-        const have = new Set(songs.map((x) => x.id));
-        const missing = SEED_SONGS.filter((x) => !have.has(x.id));
-        if (missing.length) {
-          songs = [...songs, ...missing];
+        const byId = new Map(songs.map((x) => [x.id, x]));
+        let changed = false;
+        for (const seed of SEED_SONGS) {
+          const cur = byId.get(seed.id);
+          if (!cur) {
+            byId.set(seed.id, seed); // new seed song
+            changed = true;
+          } else if (!cur.body.trim() && seed.body.trim()) {
+            // Backfill chords into an untouched stub, keeping user's key/capo/tags.
+            byId.set(seed.id, {
+              ...cur,
+              body: seed.body,
+              key: cur.key || seed.key,
+              capo: cur.capo || seed.capo,
+              updatedAt: Date.now(),
+            });
+            changed = true;
+          }
+        }
+        if (changed) {
+          songs = [...byId.values()];
           await saveSongs(songs);
         }
         await saveSeedVersion(SEED_VERSION);
