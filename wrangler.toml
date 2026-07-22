@@ -1,0 +1,7 @@
+name = "chords-proxy"
+main = "worker/proxy.js"
+compatibility_date = "2024-11-01"
+
+# Deploy with:  npx wrangler deploy
+# After deploy, copy the printed *.workers.dev URL into the app:
+#   Settings → Import proxy URL
