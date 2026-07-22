@@ -8,7 +8,7 @@ import { extractChords } from '../lib/chordpro';
 import { transposeChord } from '../lib/music';
 import { fetchAndParse } from '../lib/import';
 import {
-  IconBack, IconEdit, IconMinus, IconPlus, IconPause, IconPlay, IconMusic, IconList,
+  IconBack, IconEdit, IconMinus, IconPlus, IconPause, IconPlay, IconMusic, IconList, IconPrint,
 } from './icons';
 
 interface Props {
@@ -31,6 +31,7 @@ export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSet
   const [columns, setColumns] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState('');
+  const [printing, setPrinting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const hasBody = song.body.trim().length > 0;
@@ -78,6 +79,21 @@ export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSet
     return () => cancelAnimationFrame(raf);
   }, [scrolling, settings.scrollSpeed]);
 
+  const doPrint = (cols: 1 | 2 | 3, size: number) => {
+    const body = document.body;
+    const cls = cols === 2 ? 'print-cols-2' : cols === 3 ? 'print-cols-3' : 'print-cols-1';
+    body.classList.add(cls);
+    body.style.setProperty('--print-size', `${size}pt`);
+    setPrinting(false);
+    const cleanup = () => {
+      body.classList.remove('print-cols-1', 'print-cols-2', 'print-cols-3');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    // Let the dialog close before the print dialog opens.
+    setTimeout(() => window.print(), 60);
+  };
+
   const soundingKey = song.key ? transposeKeyName(song.key, transpose) : '';
   const usedChords = extractChords(song.body).map((c) => transposeChord(c, shift, soundingKey || undefined));
 
@@ -90,12 +106,22 @@ export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSet
           {song.artist ? <span className="sub"> · {song.artist}</span> : null}
         </h1>
         {hasBody && <button className="iconbtn" onClick={() => setShowAll(true)} aria-label="All chords"><IconMusic /></button>}
+        {hasBody && <button className="iconbtn" onClick={() => setPrinting(true)} aria-label="Print"><IconPrint /></button>}
         <button className="iconbtn" onClick={onEdit} aria-label="Edit"><IconEdit /></button>
       </div>
 
       <div className="scroll" ref={scrollRef} style={{ ['--font-size' as string]: `${settings.fontSize}px` }}>
         <div className="reader">
           <div className="reader-head">
+            <div className="print-only">
+              <h2>{song.title}</h2>
+              {song.artist && <div className="by">{song.artist}</div>}
+              <div className="meta">
+                {soundingKey && `Key ${soundingKey}`}
+                {soundingKey && capo ? '  ·  ' : ''}
+                {capo ? `Capo ${capo}` : ''}
+              </div>
+            </div>
             <div className="keyline">
               {soundingKey && <span>Key <b>{soundingKey}</b></span>}
               {capo > 0 && <span>Capo <b>{capo}</b></span>}
@@ -185,6 +211,12 @@ export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSet
         </Modal>
       )}
 
+      {printing && (
+        <Modal title="Print / save as PDF" onClose={() => setPrinting(false)}>
+          <PrintDialog onPrint={doPrint} />
+        </Modal>
+      )}
+
       {showAll && (
         <Modal title="Chords in this song" onClose={() => setShowAll(false)}>
           <div className="chord-grid">
@@ -197,6 +229,40 @@ export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSet
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+function PrintDialog({ onPrint }: { onPrint: (cols: 1 | 2 | 3, size: number) => void }) {
+  const [cols, setCols] = useState<1 | 2 | 3>(1);
+  const [size, setSize] = useState(11);
+  return (
+    <div className="form" style={{ padding: 0 }}>
+      <div className="field">
+        <label>Layout</label>
+        <div className="seg-control" style={{ alignSelf: 'flex-start' }}>
+          {([1, 2, 3] as const).map((c) => (
+            <button key={c} className={cols === c ? 'on' : ''} onClick={() => setCols(c)}>
+              {c} column{c > 1 ? 's' : ''}
+            </button>
+          ))}
+        </div>
+        <div className="hint">
+          One column reads biggest; two or three fit a long song on one page. Lines and sections never
+          split across a page or column.
+        </div>
+      </div>
+      <div className="field">
+        <label>Text size — {size}pt</label>
+        <input type="range" min={8} max={16} step={0.5} value={size} onChange={(e) => setSize(Number(e.target.value))} />
+      </div>
+      <div className="notice ok">
+        Prints the chords exactly as shown now (transpose &amp; capo included). In the print dialog,
+        choose “Save as PDF” for a file.
+      </div>
+      <button className="btn primary block" onClick={() => onPrint(cols, size)}>
+        <IconPrint size={18} /> Print / Save as PDF
+      </button>
     </div>
   );
 }

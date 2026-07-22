@@ -152,18 +152,21 @@ function maxFret(s: GuitarShape): number {
 // ---- Piano ---------------------------------------------------------------
 
 export interface PianoVoicing {
-  /** Pitch classes (0-11) that are pressed, relative to C. */
-  pitchClasses: number[];
-  /** The root pitch class, highlighted distinctly. */
+  /** Absolute semitones from C (root's octave = 0). Each note once, low→high. */
+  pitches: number[];
+  /** The root pitch class (0-11), highlighted distinctly. */
   root: number;
+  /** Slash-bass pitch class (0-11), or null. */
+  bass: number | null;
 }
 
 export function pianoVoicing(symbol: string): PianoVoicing | null {
   const parsed = parseChord(symbol);
   if (!parsed) return null;
   const root = ((parsed.root % 12) + 12) % 12;
-  const pcs = chordIntervals(parsed.suffix).map((i) => (root + i) % 12);
-  const set = new Set(pcs);
-  if (parsed.bass !== null) set.add(((parsed.bass % 12) + 12) % 12);
-  return { pitchClasses: [...set], root };
+  // Absolute intervals (not folded to a pitch class) so extensions stack up the
+  // keyboard as a real voicing — each note appears exactly once.
+  const pitches = chordIntervals(parsed.suffix).map((i) => root + i);
+  const bass = parsed.bass !== null ? ((parsed.bass % 12) + 12) % 12 : null;
+  return { pitches, root, bass };
 }

@@ -12,6 +12,8 @@ export interface Song {
   sourceUrl?: string;
   /** Free-form tags for organizing the library. */
   tags: string[];
+  /** Section this song belongs to, e.g. "Dylan Chords". Empty = main library. */
+  collection?: string;
   createdAt: number;
   updatedAt: number;
   /** Per-song saved reader preferences. */

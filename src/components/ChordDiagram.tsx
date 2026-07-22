@@ -123,12 +123,17 @@ function NoDiagram({ width }: { width: number }) {
 function PianoDiagram({ symbol, width }: { symbol: string; width: number }) {
   const v = pianoVoicing(symbol);
   if (!v) return <NoDiagram width={width / 1.6} />;
-  const set = new Set(v.pitchClasses.map((p) => ((p % 12) + 12) % 12));
-  const rootPc = ((v.root % 12) + 12) % 12;
 
-  // Two octaves starting at C.
-  const whiteMap = [0, 2, 4, 5, 7, 9, 11];
   const octaves = 2;
+  const span = octaves * 12; // semitone slots 0..23
+  // Fold each voiced note into the visible span, once — a real stacked voicing.
+  const fold = (p: number) => { let x = p; while (x >= span) x -= 12; while (x < 0) x += 12; return x; };
+  const lit = new Set<number>(v.pitches.map(fold));
+  if (v.bass !== null) lit.add(v.bass);
+  const rootSlot = v.root; // 0-11, low octave
+
+  const whiteMap = [0, 2, 4, 5, 7, 9, 11];
+  const blackMap: [number, number][] = [[0, 1], [1, 3], [3, 6], [4, 8], [5, 10]]; // [leftWhite, pc]
   const whiteCount = whiteMap.length * octaves;
   const H = width * 0.42;
   const ww = width / whiteCount;
@@ -140,23 +145,25 @@ function PianoDiagram({ symbol, width }: { symbol: string; width: number }) {
   for (let o = 0; o < octaves; o++) {
     whiteMap.forEach((pc, i) => {
       const idx = o * 7 + i;
+      const slot = o * 12 + pc;
       const x = idx * ww;
-      const on = set.has(pc);
+      const isOn = lit.has(slot);
+      const isRoot = slot === rootSlot || (v.bass !== null && o === 0 && pc === v.bass);
       whites.push(
         <g key={`w${idx}`}>
-          <rect x={x} y={0} width={ww} height={H} fill={on ? (pc === rootPc ? 'var(--accent-strong)' : 'var(--accent)') : 'var(--bg-elev)'} stroke="var(--line)" strokeWidth={1} />
-          {on && <text x={x + ww / 2} y={H - 6} fontSize={ww * 0.5} textAnchor="middle" fill="#0b0d10" fontWeight="700">{NOTE_LABELS[pc][0]}</text>}
+          <rect x={x} y={0} width={ww} height={H} fill={isOn ? (isRoot ? 'var(--accent-strong)' : 'var(--accent)') : 'var(--bg-elev)'} stroke="var(--line)" strokeWidth={1} />
+          {isOn && <text x={x + ww / 2} y={H - 6} fontSize={ww * 0.5} textAnchor="middle" fill="#0b0d10" fontWeight="700">{NOTE_LABELS[pc][0]}</text>}
         </g>,
       );
     });
-    // Black keys sit between certain whites.
-    [[0, 1], [1, 2], [3, 4], [4, 5], [5, 6]].forEach(([leftWhite], k) => {
-      const blackPc = [1, 3, 6, 8, 10][k];
+    blackMap.forEach(([leftWhite, pc], k) => {
+      const slot = o * 12 + pc;
       const idx = o * 7 + leftWhite;
       const x = (idx + 1) * ww - bw / 2;
-      const on = set.has(blackPc);
+      const isOn = lit.has(slot);
+      const isRoot = slot === rootSlot;
       blacks.push(
-        <rect key={`b${o}-${k}`} x={x} y={0} width={bw} height={bh} rx={2} fill={on ? (blackPc === rootPc ? 'var(--accent-strong)' : 'var(--accent)') : 'var(--text)'} stroke="var(--bg)" strokeWidth={1} />,
+        <rect key={`b${o}-${k}`} x={x} y={0} width={bw} height={bh} rx={2} fill={isOn ? (isRoot ? 'var(--accent-strong)' : 'var(--accent)') : 'var(--text)'} stroke="var(--bg)" strokeWidth={1} />,
       );
     });
   }

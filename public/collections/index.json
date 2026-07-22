@@ -1,0 +1,26 @@
+[
+  {
+    "id": "dylan",
+    "name": "Dylan Chords",
+    "file": "dylan.json",
+    "count": 479
+  },
+  {
+    "id": "cohen",
+    "name": "Cohen Chords",
+    "file": "cohen.json",
+    "count": 193
+  },
+  {
+    "id": "damnskippy",
+    "name": "Damn Skippy",
+    "file": "damnskippy.json",
+    "count": 56
+  },
+  {
+    "id": "slean",
+    "name": "Sarah Slean",
+    "file": "slean.json",
+    "count": 23
+  }
+]

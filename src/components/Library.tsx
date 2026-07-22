@@ -1,27 +1,76 @@
 import { useMemo, useState } from 'react';
 import type { Song } from '../types';
-import { IconPlus, IconSearch, IconSettings, IconMusic } from './icons';
+import type { CollectionInfo } from '../lib/collections';
+import { IconPlus, IconSearch, IconSettings, IconMusic, IconDownload } from './icons';
 
 interface Props {
   songs: Song[];
+  manifest: CollectionInfo[];
+  onLoadCollection: (info: CollectionInfo) => Promise<void>;
   onOpen: (id: string) => void;
   onImport: () => void;
   onSettings: () => void;
 }
 
-export function Library({ songs, onOpen, onImport, onSettings }: Props) {
+const MAIN = 'My Library';
+
+export function Library({ songs, manifest, onLoadCollection, onOpen, onImport, onSettings }: Props) {
   const [q, setQ] = useState('');
   const [tag, setTag] = useState<string | null>(null);
+  const [collection, setCollection] = useState<string>(MAIN);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState('');
+
+  const loadedNames = useMemo(() => {
+    const set = new Set<string>();
+    let hasMain = false;
+    for (const s of songs) {
+      if (s.collection) set.add(s.collection);
+      else hasMain = true;
+    }
+    return { set, hasMain };
+  }, [songs]);
+
+  const collections = useMemo(() => {
+    const rest = [...loadedNames.set].sort();
+    return loadedNames.hasMain ? [MAIN, ...rest] : rest;
+  }, [loadedNames]);
+
+  // Collections that exist as downloads but aren't loaded yet.
+  const downloadable = useMemo(
+    () => manifest.filter((m) => !loadedNames.set.has(m.name)),
+    [manifest, loadedNames],
+  );
+
+  const openDownloadable = async (m: CollectionInfo) => {
+    setLoadError('');
+    setLoadingId(m.id);
+    try {
+      await onLoadCollection(m);
+      setCollection(m.name);
+      setTag(null);
+      setQ('');
+    } catch (e) {
+      setLoadError((e as Error).message);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const inCollection = useMemo(
+    () => songs.filter((s) => (s.collection || MAIN) === collection),
+    [songs, collection],
+  );
 
   const allTags = useMemo(() => {
     const t = new Set<string>();
-    for (const s of songs) s.tags?.forEach((x) => t.add(x));
+    for (const s of inCollection) s.tags?.forEach((x) => t.add(x));
     return [...t].sort();
-  }, [songs]);
+  }, [inCollection]);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return songs
+    return inCollection
       .filter((s) => (tag ? s.tags?.includes(tag) : true))
       .filter((s) =>
         !needle ||
@@ -29,7 +78,7 @@ export function Library({ songs, onOpen, onImport, onSettings }: Props) {
         s.artist.toLowerCase().includes(needle),
       )
       .sort((a, b) => a.title.localeCompare(b.title));
-  }, [songs, q, tag]);
+  }, [inCollection, q, tag]);
 
   // Group by artist for browsing.
   const groups = useMemo(() => {
@@ -44,11 +93,35 @@ export function Library({ songs, onOpen, onImport, onSettings }: Props) {
   return (
     <div className="app">
       <div className="topbar">
-        <h1>Chords <span className="sub">{songs.length}</span></h1>
+        <h1>Chords <span className="sub">{inCollection.length}</span></h1>
         <button className="iconbtn" onClick={onSettings} aria-label="Settings"><IconSettings /></button>
       </div>
 
       <div className="scroll">
+        {(collections.length > 1 || downloadable.length > 0) && (
+          <div className="collrow">
+            {collections.map((c) => (
+              <button
+                key={c}
+                className={`coll${c === collection ? ' on' : ''}`}
+                onClick={() => { setCollection(c); setTag(null); setQ(''); }}
+              >
+                {c}
+              </button>
+            ))}
+            {downloadable.map((m) => (
+              <button
+                key={m.id}
+                className="coll download"
+                onClick={() => openDownloadable(m)}
+                disabled={loadingId !== null}
+              >
+                {loadingId === m.id ? 'Loading…' : <>{m.name} <IconDownload size={13} /> <span className="cnt">{m.count}</span></>}
+              </button>
+            ))}
+          </div>
+        )}
+        {loadError && <div className="notice err" style={{ margin: '0 12px 8px' }}>{loadError}</div>}
         <div className="searchbar">
           <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
             <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }}>

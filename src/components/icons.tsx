@@ -37,3 +37,4 @@ export const IconClose = s(<><path d="M18 6L6 18" /><path d="M6 6l12 12" /></>);
 export const IconStar = s(<path d="M12 2l3 6.5 7 .8-5 4.9 1.3 7-6.3-3.4L5.7 21 7 14.2 2 9.3l7-.8L12 2z" />);
 export const IconDownload = s(<><path d="M12 3v12" /><path d="M7 10l5 5 5-5" /><path d="M5 21h14" /></>);
 export const IconMusic = s(<><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></>);
+export const IconPrint = s(<><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" /><rect x="6" y="14" width="12" height="8" rx="1" /></>);

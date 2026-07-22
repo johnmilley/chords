@@ -135,7 +135,7 @@ const SECTION_RE =
   /^\[?\s*((?:intro|verse|chorus|pre-?chorus|bridge|outro|solo|interlude|instrumental|refrain|coda|hook|breakdown|tag|ending|riff|link|vamp)[^\]\n]*?)\s*\]?\s*:?\s*$/i;
 const CAPO_RE = /^\[?\s*capo\s*:?\s*(?:fret\s*)?([0-9ivx]+)/i;
 const KEY_RE = /^\[?\s*key\s*:?\s*([A-G](?:#|b)?m?)\b/i;
-const CHORD_EXTRAS = /^(\||\|\||x\d+|\(x?\d+\)|n\.?c\.?|%|:|\/|-|~|\*|\d+x)$/i;
+const CHORD_EXTRAS = /^(\||\|\||x\d+|\(x?\d+\)|n\.?c\.?|%|:|\/|-|~|\*|\d+x|\/[A-G](#|b)?|\.)$/i;
 
 function classifyPlainLine(line: string): Row {
   const trimmed = line.trim();

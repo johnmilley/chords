@@ -10,6 +10,7 @@ import { ImportView } from './components/ImportView';
 import { SongEdit } from './components/SongEdit';
 import { SettingsView } from './components/SettingsView';
 import { SEED_SONGS } from './seed';
+import { fetchManifest, fetchCollection, type CollectionInfo } from './lib/collections';
 
 // Bump when adding/updating seed songs so existing installs pick up changes once.
 // v2: chords baked into the favorites (were link-only stubs in v1).
@@ -41,6 +42,24 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [route, setRoute] = useState<Route>(() => hashToRoute(location.hash));
   const [ready, setReady] = useState(false);
+  const [manifest, setManifest] = useState<CollectionInfo[]>([]);
+
+  // Load the list of downloadable collections (best-effort; offline-safe).
+  useEffect(() => {
+    fetchManifest().then(setManifest);
+  }, []);
+
+  const loadCollection = useCallback(async (info: CollectionInfo) => {
+    const incoming = await fetchCollection(info);
+    setSongs((prev) => {
+      const have = new Set(prev.map((s) => s.id));
+      const fresh = incoming.filter((s) => !have.has(s.id));
+      if (!fresh.length) return prev;
+      const next = [...prev, ...fresh];
+      saveSongs(next);
+      return next;
+    });
+  }, []);
 
   // Keep the URL hash in sync with the route so the mobile back button works.
   useEffect(() => {
@@ -213,6 +232,8 @@ export function App() {
   return (
     <Library
       songs={songs}
+      manifest={manifest}
+      onLoadCollection={loadCollection}
       onOpen={(id) => setRoute({ name: 'song', id })}
       onImport={() => setRoute({ name: 'import' })}
       onSettings={() => setRoute({ name: 'settings' })}

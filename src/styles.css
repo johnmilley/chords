@@ -142,6 +142,34 @@ a { color: var(--accent); }
 }
 .searchbar input:focus { border-color: var(--accent-strong); }
 
+.collrow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 12px 4px;
+  scrollbar-width: none;
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  background: var(--bg);
+}
+.collrow::-webkit-scrollbar { display: none; }
+.coll {
+  flex: none;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.coll.on { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+.coll.download { border-style: dashed; display: inline-flex; align-items: center; gap: 5px; }
+.coll.download .cnt { font-size: 11px; color: var(--text-faint); font-weight: 500; }
+.coll.download:disabled { opacity: 0.6; }
+
 .tagrow {
   display: flex;
   gap: 6px;
@@ -481,3 +509,39 @@ a { color: var(--accent); }
   z-index: 25;
 }
 .fab:active { transform: scale(0.94); }
+
+/* ---- Print / PDF ---- */
+
+.print-only { display: none; }
+
+@media print {
+  :root { --font-size: 11pt; }
+  html, body, #root, .app, .scroll { height: auto !important; overflow: visible !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .app { max-width: none !important; margin: 0 !important; }
+
+  /* Hide all app chrome. */
+  .topbar, .toolbar, .fab, .searchbar, .tagrow, .collrow, .scrim, .reader-head .keyline { display: none !important; }
+
+  .reader { padding: 0 !important; }
+  .print-only { display: block; margin-bottom: 10pt; }
+  .print-only h2 { margin: 0; font-size: 16pt; }
+  .print-only .by { color: #000; font-size: 11pt; }
+  .print-only .meta { color: #333; font-size: 10pt; margin-top: 2pt; }
+
+  .sheet {
+    color: #000 !important;
+    font-size: var(--print-size, 11pt);
+    line-height: var(--print-lh, 2.05);
+  }
+  .sheet .ch { color: #000 !important; font-weight: 800; }
+  .sheet .section { color: #000 !important; font-weight: 800; }
+  .sheet .comment { color: #333 !important; }
+  .sheet .lyric-line, .sheet .section, .sheet .comment { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Column layouts, chosen in the print dialog. */
+  .print-cols-2 .sheet { columns: 2; column-gap: 1.6cm; }
+  .print-cols-3 .sheet { columns: 3; column-gap: 1.1cm; }
+
+  @page { margin: 1.4cm; }
+}
