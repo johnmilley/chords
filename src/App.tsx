@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Settings, Song } from './types';
 import { DEFAULT_SETTINGS } from './types';
 import {
   loadSongs, saveSongs, loadSettings, saveSettings, loadSeedVersion, saveSeedVersion,
 } from './lib/storage';
-import { Library } from './components/Library';
+import { Library, DEFAULT_VIEW, type LibraryView } from './components/Library';
 import { SongView } from './components/SongView';
 import { ImportView } from './components/ImportView';
 import { SongEdit } from './components/SongEdit';
@@ -43,6 +43,9 @@ export function App() {
   const [route, setRoute] = useState<Route>(() => hashToRoute(location.hash));
   const [ready, setReady] = useState(false);
   const [manifest, setManifest] = useState<CollectionInfo[]>([]);
+  // Library browsing state, kept here so it survives leaving/returning to it.
+  const [libView, setLibView] = useState<LibraryView>(DEFAULT_VIEW);
+  const libScroll = useRef(0);
 
   // Load the list of downloadable collections (best-effort; offline-safe).
   useEffect(() => {
@@ -237,6 +240,9 @@ export function App() {
       onOpen={(id) => setRoute({ name: 'song', id })}
       onImport={() => setRoute({ name: 'import' })}
       onSettings={() => setRoute({ name: 'settings' })}
+      view={libView}
+      onView={setLibView}
+      scrollPos={libScroll}
     />
   );
 }

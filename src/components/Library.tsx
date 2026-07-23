@@ -1,7 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import type { Song } from '../types';
 import type { CollectionInfo } from '../lib/collections';
 import { IconPlus, IconSearch, IconSettings, IconMusic, IconDownload } from './icons';
+
+export const MAIN = 'My Library';
+
+export interface LibraryView {
+  collection: string;
+  q: string;
+  tag: string | null;
+}
+export const DEFAULT_VIEW: LibraryView = { collection: MAIN, q: '', tag: null };
 
 interface Props {
   songs: Song[];
@@ -10,16 +19,26 @@ interface Props {
   onOpen: (id: string) => void;
   onImport: () => void;
   onSettings: () => void;
+  /** Persisted browsing state so returning from a song restores the view. */
+  view: LibraryView;
+  onView: (v: LibraryView) => void;
+  /** Persisted scroll position (mutated in place). */
+  scrollPos: MutableRefObject<number>;
 }
 
-const MAIN = 'My Library';
-
-export function Library({ songs, manifest, onLoadCollection, onOpen, onImport, onSettings }: Props) {
-  const [q, setQ] = useState('');
-  const [tag, setTag] = useState<string | null>(null);
-  const [collection, setCollection] = useState<string>(MAIN);
+export function Library({ songs, manifest, onLoadCollection, onOpen, onImport, onSettings, view, onView, scrollPos }: Props) {
+  const { q, tag, collection } = view;
+  const setQ = (v: string) => onView({ ...view, q: v });
+  const setTag = (v: string | null) => onView({ ...view, tag: v });
+  const setCollection = (c: string) => onView({ collection: c, q: '', tag: null });
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
+
+  // Restore scroll position when returning, and remember it as the user scrolls.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollPos.current;
+  }, []);
 
   const loadedNames = useMemo(() => {
     const set = new Set<string>();
@@ -48,8 +67,6 @@ export function Library({ songs, manifest, onLoadCollection, onOpen, onImport, o
     try {
       await onLoadCollection(m);
       setCollection(m.name);
-      setTag(null);
-      setQ('');
     } catch (e) {
       setLoadError((e as Error).message);
     } finally {
@@ -97,14 +114,14 @@ export function Library({ songs, manifest, onLoadCollection, onOpen, onImport, o
         <button className="iconbtn" onClick={onSettings} aria-label="Settings"><IconSettings /></button>
       </div>
 
-      <div className="scroll">
+      <div className="scroll" ref={scrollRef} onScroll={(e) => { scrollPos.current = e.currentTarget.scrollTop; }}>
         {(collections.length > 1 || downloadable.length > 0) && (
           <div className="collrow">
             {collections.map((c) => (
               <button
                 key={c}
                 className={`coll${c === collection ? ' on' : ''}`}
-                onClick={() => { setCollection(c); setTag(null); setQ(''); }}
+                onClick={() => setCollection(c)}
               >
                 {c}
               </button>
