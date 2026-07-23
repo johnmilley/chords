@@ -2,8 +2,9 @@ import { useRef, useState } from 'react';
 import type { Settings, Song } from '../types';
 import { fetchAndParse, parsePasted } from '../lib/import';
 import { parseFavorites, looksLikeFavorites } from '../lib/favorites';
+import { searchUltimateGuitar, type UgResult } from '../lib/ug-search';
 import { uid } from '../lib/storage';
-import { IconBack, IconLink, IconStar } from './icons';
+import { IconBack, IconLink, IconStar, IconSearch } from './icons';
 
 interface Props {
   settings: Settings;
@@ -21,9 +22,41 @@ export function ImportView({ settings, onBack, onSave, onImportMany }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<UgResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const favCount = looksLikeFavorites(pasted) ? parseFavorites(pasted).length : 0;
+  const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
+
+  const doSearch = async () => {
+    const q = query.trim();
+    if (!q) return;
+    setError('');
+    setSearching(true);
+    setSearched(true);
+    try {
+      const r = await searchUltimateGuitar(q, settings.proxyUrl);
+      r.sort((a, b) => b.votes - a.votes); // best-known versions first
+      setResults(r);
+    } catch (e) {
+      setResults([]);
+      setError((e as Error).message);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const importFromUrl = async (u: string) => {
+    setError('');
+    setBusy(true);
+    const out = await fetchAndParse(u, settings.proxyUrl);
+    setBusy(false);
+    if (out.ok && out.result) goReview(out.result, u);
+    else setError(out.error ?? 'Import failed.');
+  };
 
   const onFile = async (file: File) => {
     const text = await file.text();
@@ -73,17 +106,7 @@ export function ImportView({ settings, onBack, onSave, onImportMany }: Props) {
     setStage('review');
   };
 
-  const onFetch = async () => {
-    setError('');
-    setBusy(true);
-    const out = await fetchAndParse(url.trim(), settings.proxyUrl);
-    setBusy(false);
-    if (out.ok && out.result) {
-      goReview(out.result, url.trim());
-    } else {
-      setError(out.error ?? 'Import failed.');
-    }
-  };
+  const onFetch = () => importFromUrl(url.trim());
 
   const onParsePaste = () => {
     setError('');
@@ -118,6 +141,51 @@ export function ImportView({ settings, onBack, onSave, onImportMany }: Props) {
       <div className="scroll">
         {stage === 'input' ? (
           <div className="form">
+            <div className="field">
+              <label>Search Ultimate Guitar</label>
+              <div className="row2">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && doSearch()}
+                  placeholder="Song or artist"
+                  autoCapitalize="none"
+                  enterKeyHint="search"
+                />
+              </div>
+              <button className="btn primary" onClick={doSearch} disabled={searching || !query.trim()}>
+                <IconSearch size={18} /> {searching ? 'Searching…' : 'Search'}
+              </button>
+              {!settings.proxyUrl && (
+                <div className="notice warn">
+                  Search needs the import proxy. Add your proxy URL in Settings → Import.
+                </div>
+              )}
+              {busy && <div className="notice ok">Fetching chords…</div>}
+              {results.length > 0 && (
+                <div className="results">
+                  {results.map((r, i) => (
+                    <button key={i} className="result-row" onClick={() => importFromUrl(r.url)} disabled={busy}>
+                      <div className="ri">
+                        <div className="title">{r.song}</div>
+                        <div className="meta">{r.artist}</div>
+                      </div>
+                      <div className="badges">
+                        <span className="badge">{r.type}</span>
+                        {r.key && <span className="badge">Key {r.key}</span>}
+                        {r.votes > 0 && <span className="badge">★{r.rating.toFixed(1)} · {fmt(r.votes)}</span>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searched && !searching && results.length === 0 && !error && (
+                <div className="hint">No chord results — try a different spelling.</div>
+              )}
+            </div>
+
+            <div style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: 13 }}>— or —</div>
+
             <div className="field">
               <label>Import from a link</label>
               <div className="row2">
