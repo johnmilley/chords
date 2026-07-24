@@ -38,3 +38,9 @@ export const IconStar = s(<path d="M12 2l3 6.5 7 .8-5 4.9 1.3 7-6.3-3.4L5.7 21 7
 export const IconDownload = s(<><path d="M12 3v12" /><path d="M7 10l5 5 5-5" /><path d="M5 21h14" /></>);
 export const IconMusic = s(<><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></>);
 export const IconPrint = s(<><path d="M6 9V2h12v7" /><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" /><rect x="6" y="14" width="12" height="8" rx="1" /></>);
+export const IconTarget = s(<><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" fill="currentColor" /></>);
+export const IconRepeat = s(<><path d="M17 2l4 4-4 4" /><path d="M3 11V9a4 4 0 014-4h14" /><path d="M7 22l-4-4 4-4" /><path d="M21 13v2a4 4 0 01-4 4H3" /></>);
+export const IconHeadphones = s(<path d="M3 14v-2a9 9 0 0118 0v2M21 14a2 2 0 01-2 2h-1a2 2 0 01-2-2v-2a2 2 0 012-2h3v4zM3 14a2 2 0 002 2h1a2 2 0 002-2v-2a2 2 0 00-2-2H3v4z" />);
+export const IconLayers = s(<><path d="M12 2l9 5-9 5-9-5 9-5z" /><path d="M3 12l9 5 9-5" /><path d="M3 17l9 5 9-5" /></>);
+export const IconGraduation = s(<><path d="M22 10L12 5 2 10l10 5 10-5z" /><path d="M6 12.5V17c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5" /><path d="M22 10v6" /></>);
+export const IconCheck = s(<path d="M20 6L9 17l-5-5" />);

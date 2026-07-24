@@ -1,11 +1,20 @@
 import { get, set, del } from 'idb-keyval';
 import type { Song, Setlist, Settings } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
+import type { MasteryMap } from './mastery';
 
 const SONGS_KEY = 'chords:songs';
 const SETLISTS_KEY = 'chords:setlists';
 const SETTINGS_KEY = 'chords:settings';
 const SEED_VERSION_KEY = 'chords:seedVersion';
+const MASTERY_KEY = 'chords:mastery';
+
+export async function loadMastery(): Promise<MasteryMap> {
+  return (await get<MasteryMap>(MASTERY_KEY)) ?? {};
+}
+export async function saveMastery(mastery: MasteryMap): Promise<void> {
+  await set(MASTERY_KEY, mastery);
+}
 
 export async function loadSeedVersion(): Promise<number> {
   return (await get<number>(SEED_VERSION_KEY)) ?? 0;
@@ -52,15 +61,18 @@ export interface Backup {
   songs: Song[];
   setlists: Setlist[];
   settings: Settings;
+  /** Optional: added later, so older backup files still validate without it. */
+  mastery?: MasteryMap;
 }
 
 export async function exportBackup(): Promise<Backup> {
-  const [songs, setlists, settings] = await Promise.all([
+  const [songs, setlists, settings, mastery] = await Promise.all([
     loadSongs(),
     loadSetlists(),
     loadSettings(),
+    loadMastery(),
   ]);
-  return { version: 1, exportedAt: Date.now(), songs, setlists, settings };
+  return { version: 1, exportedAt: Date.now(), songs, setlists, settings, mastery };
 }
 
 export async function importBackup(data: Backup, mode: 'merge' | 'replace'): Promise<void> {
@@ -69,13 +81,22 @@ export async function importBackup(data: Backup, mode: 'merge' | 'replace'): Pro
     await saveSongs(data.songs ?? []);
     await saveSetlists(data.setlists ?? []);
     if (data.settings) await saveSettings(data.settings);
+    if (data.mastery) await saveMastery(data.mastery);
     return;
   }
-  const [songs, setlists] = await Promise.all([loadSongs(), loadSetlists()]);
+  const [songs, setlists, mastery] = await Promise.all([loadSongs(), loadSetlists(), loadMastery()]);
   const byId = new Map(songs.map((s) => [s.id, s]));
   for (const s of data.songs ?? []) byId.set(s.id, s);
   const slById = new Map(setlists.map((s) => [s.id, s]));
   for (const s of data.setlists ?? []) slById.set(s.id, s);
   await saveSongs([...byId.values()]);
   await saveSetlists([...slById.values()]);
+  if (data.mastery) {
+    // Merge by taking the higher level per chord (don't regress progress).
+    const merged = { ...mastery };
+    for (const [k, v] of Object.entries(data.mastery)) {
+      merged[k] = !merged[k] || v.level > merged[k].level ? v : merged[k];
+    }
+    await saveMastery(merged);
+  }
 }

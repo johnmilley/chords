@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import type { Song } from '../types';
 import type { CollectionInfo } from '../lib/collections';
-import { IconPlus, IconSearch, IconSettings, IconMusic, IconDownload } from './icons';
+import { IconPlus, IconSearch, IconSettings, IconMusic, IconDownload, IconGraduation } from './icons';
 
 export const MAIN = 'My Library';
 
@@ -19,6 +19,7 @@ interface Props {
   onOpen: (id: string) => void;
   onImport: () => void;
   onSettings: () => void;
+  onPractice: () => void;
   /** Persisted browsing state so returning from a song restores the view. */
   view: LibraryView;
   onView: (v: LibraryView) => void;
@@ -26,7 +27,7 @@ interface Props {
   scrollPos: MutableRefObject<number>;
 }
 
-export function Library({ songs, manifest, onLoadCollection, onOpen, onImport, onSettings, view, onView, scrollPos }: Props) {
+export function Library({ songs, manifest, onLoadCollection, onOpen, onImport, onSettings, onPractice, view, onView, scrollPos }: Props) {
   const { q, tag, collection } = view;
   const setQ = (v: string) => onView({ ...view, q: v });
   const setTag = (v: string | null) => onView({ ...view, tag: v });
@@ -111,6 +112,7 @@ export function Library({ songs, manifest, onLoadCollection, onOpen, onImport, o
     <div className="app">
       <div className="topbar">
         <h1>Chords <span className="sub">{inCollection.length}</span></h1>
+        <button className="iconbtn" onClick={onPractice} aria-label="Learn"><IconGraduation /></button>
         <button className="iconbtn" onClick={onSettings} aria-label="Settings"><IconSettings /></button>
       </div>
 

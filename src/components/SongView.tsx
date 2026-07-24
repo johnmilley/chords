@@ -9,6 +9,7 @@ import { transposeChord } from '../lib/music';
 import { fetchAndParse } from '../lib/import';
 import {
   IconBack, IconEdit, IconMinus, IconPlus, IconPause, IconPlay, IconMusic, IconList, IconPrint,
+  IconTarget, IconRepeat, IconGraduation,
 } from './icons';
 
 interface Props {
@@ -18,9 +19,11 @@ interface Props {
   onEdit: () => void;
   onChange: (song: Song) => void;
   onUpdateSettings: (patch: Partial<Settings>) => void;
+  onPracticeSwitch: () => void;
+  onPracticeLoop: () => void;
 }
 
-export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSettings }: Props) {
+export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSettings, onPracticeSwitch, onPracticeLoop }: Props) {
   const transpose = song.prefs?.transpose ?? 0;
   const capo = song.prefs?.capo ?? song.capo ?? 0;
   const shift = transpose - capo;
@@ -32,6 +35,7 @@ export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSet
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [printing, setPrinting] = useState(false);
+  const [choosingPractice, setChoosingPractice] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const hasBody = song.body.trim().length > 0;
@@ -106,6 +110,7 @@ export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSet
           {song.artist ? <span className="sub"> · {song.artist}</span> : null}
         </h1>
         {hasBody && <button className="iconbtn" onClick={() => setShowAll(true)} aria-label="All chords"><IconMusic /></button>}
+        {hasBody && <button className="iconbtn" onClick={() => setChoosingPractice(true)} aria-label="Practice"><IconGraduation /></button>}
         {hasBody && <button className="iconbtn" onClick={() => setPrinting(true)} aria-label="Print"><IconPrint /></button>}
         <button className="iconbtn" onClick={onEdit} aria-label="Edit"><IconEdit /></button>
       </div>
@@ -214,6 +219,19 @@ export function SongView({ song, settings, onBack, onEdit, onChange, onUpdateSet
       {printing && (
         <Modal title="Print / save as PDF" onClose={() => setPrinting(false)}>
           <PrintDialog onPrint={doPrint} />
+        </Modal>
+      )}
+
+      {choosingPractice && (
+        <Modal title="Practice this song" onClose={() => setChoosingPractice(false)}>
+          <div className="btnrow" style={{ flexDirection: 'column', gap: 10 }}>
+            <button className="btn primary block" onClick={onPracticeSwitch}>
+              <IconTarget size={18} /> Chord-switch drill
+            </button>
+            <button className="btn block" onClick={onPracticeLoop}>
+              <IconRepeat size={18} /> Section looper
+            </button>
+          </div>
         </Modal>
       )}
 
